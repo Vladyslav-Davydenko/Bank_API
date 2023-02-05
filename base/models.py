@@ -16,7 +16,7 @@ class Profile(models.Model):
     name = models.CharField(max_length=255)
     surname = models.CharField(max_length=255)
     bank = models.ForeignKey(Bank, on_delete=models.SET_NULL, null=True)
-    balance = models.IntegerField(null=True, blank=True)
+    balance = models.IntegerField(default=0)
     id = models.UUIDField(default=uuid.uuid4, unique=True, primary_key=True, editable=False)
 
 

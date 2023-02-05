@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.http import JsonResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -45,3 +46,41 @@ def getListOfBanks(request):
         )
         serializer = BankSerializer(banks, many=False)
         return Response(serializer.data)
+
+
+class ProfileDetails(APIView):
+    def get_object(self, id):
+        try:
+            return Profile.objects.get(id=id)
+        except Profile.DoesNotExist:
+            raise JsonResponse("Profile does not exist")
+    
+    def get(self, request, id):
+        profile = self.get_object(id)
+        serializer = ProfileSerializer(profile, many=False)
+        return Response(serializer.data)
+
+    def put(self, request, id):
+        profile = self.get_object(id)
+
+        if profile.id == request.data['id']:
+            profile.balance += request.data['balance']
+            profile.save()
+        else:
+            try:
+                transfer_to = self.get_object(request.data["id"])
+                transfer_to.balance += (request.data['balance'] - (request.data['balance'] / profile.bank.commission))
+                profile.balance -= request.data['balance']
+                profile.save()
+                transfer_to.save()
+            except Profile.DoesNotExist:
+                raise JsonResponse("Can not transfer to user that is not exist")
+
+        serializer = ProfileSerializer(profile, many=False)
+        return Response(serializer.data)
+    
+
+    def delete(self, request, id):
+        profile = self.get_object(id)
+        profile.delete()
+        return Response("Profile was deleted")
