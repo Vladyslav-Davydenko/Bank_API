@@ -48,6 +48,7 @@ def getListOfBanks(request):
         return Response(serializer.data)
 
 
+#Profile
 class ProfileDetails(APIView):
     def get_object(self, id):
         try:
@@ -60,27 +61,74 @@ class ProfileDetails(APIView):
         serializer = ProfileSerializer(profile, many=False)
         return Response(serializer.data)
 
-    def put(self, request, id):
+    
+    def post(self, request, id):
+        pass
+
+
+    def patch(self, request, id):
         profile = self.get_object(id)
 
         if profile.id == request.data['id']:
             profile.balance += request.data['balance']
             profile.save()
+            serializer = ProfileSerializer(profile, many=False)
+            return Response(serializer.data)
         else:
             try:
                 transfer_to = self.get_object(request.data["id"])
-                transfer_to.balance += (request.data['balance'] - (request.data['balance'] / profile.bank.commission))
+                if profile.bank.commission == 0:
+                    transfer_to.balance += request.data['balance']
+                else:
+                    transfer_to.balance += (request.data['balance'] - (request.data['balance'] / profile.bank.commission))
                 profile.balance -= request.data['balance']
                 profile.save()
                 transfer_to.save()
+                serializer = ProfileSerializer(profile, many=False)
+                return Response(serializer.data)
             except Profile.DoesNotExist:
                 raise JsonResponse("Can not transfer to user that is not exist")
-
-        serializer = ProfileSerializer(profile, many=False)
-        return Response(serializer.data)
     
 
     def delete(self, request, id):
         profile = self.get_object(id)
         profile.delete()
         return Response("Profile was deleted")
+
+
+#Bank
+class BankDetails(APIView):
+    def get_object(self, name):
+        try:
+            return Bank.objects.get(name=name)
+        except Bank.DoesNotExist:
+            raise JsonResponse("Bank does not exist")
+
+    def get(self, request, name):
+        bank = self.get_object(name)
+        serializer = BankSerializer(bank, many=False)
+        return Response(serializer.data)
+
+
+    def patch(self, request, name):
+        bank = self.get_object(name)
+        bank.commission = request.data['commission']
+        bank.save()
+        serializer = BankSerializer(bank, many=False)
+        return Response(serializer.data)
+
+    
+    def put(self, request, name):
+        bank = self.get_object(name)
+        bank.name = request.data['name']
+        if request.data['commission']:
+            bank.commission = request.data['commission']
+        bank.save()
+        serializer = BankSerializer(bank, many=False)
+        return Response(serializer.data)
+
+
+    def delete(self, request, name):
+        bank = self.get_object(name)
+        bank.delete()
+        return Response("Bank was successfully deleted")
