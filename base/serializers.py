@@ -16,4 +16,4 @@ class ProfileSerializer(ModelSerializer):
     bank = BankSerializer()
     class Meta():
         model = Profile
-        fields = ['id', 'name', 'surname', 'balance', 'bank']
+        fields = ['id', 'name', 'surname', 'balance', 'card', 'bank']

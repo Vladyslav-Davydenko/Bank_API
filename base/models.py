@@ -1,5 +1,6 @@
 from django.db import models
 import uuid
+from .utils import get_random_card_number
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 PERCENTAGE_VALIDATOR = [MinValueValidator(0), MaxValueValidator(100)]
@@ -17,6 +18,7 @@ class Profile(models.Model):
     surname = models.CharField(max_length=255)
     bank = models.ForeignKey(Bank, on_delete=models.SET_NULL, null=True)
     balance = models.IntegerField(default=0)
+    card = models.CharField(max_length=10, blank=True, editable=False, unique=True, default=get_random_card_number())
     id = models.UUIDField(default=uuid.uuid4, unique=True, primary_key=True, editable=False)
 
 

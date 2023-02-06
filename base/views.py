@@ -1,6 +1,9 @@
 from django.shortcuts import render
 from django.http import JsonResponse
 from rest_framework.decorators import api_view, permission_classes
+
+from rest_framework import  permissions # permissions Istaff
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import Profile, Bank
@@ -29,6 +32,7 @@ def getListOfProfiles(request):
             name = request.data['name'],
             surname = request.data['surname'],
         )
+        profile.save()
         serializer = ProfileSerializer(profile, many=False)
         return Response(serializer.data)
 
@@ -50,33 +54,42 @@ def getListOfBanks(request):
 
 #Profile
 class ProfileDetails(APIView):
-    def get_object(self, id):
+    # permission_classes = [permissions.IsAdminUser] # permission_classes and clear import
+    def get_object(self, card):
         try:
-            return Profile.objects.get(id=id)
+            return Profile.objects.get(card=card)
         except Profile.DoesNotExist:
-            raise JsonResponse("Profile does not exist")
+            raise JsonResponse("Profile does not exist", safe=False)
     
-    def get(self, request, id):
-        profile = self.get_object(id)
+    def get(self, request, card):
+        profile = self.get_object(card)
         serializer = ProfileSerializer(profile, many=False)
         return Response(serializer.data)
 
     
-    def post(self, request, id):
-        pass
+    def put(self, request, card):
+        profile = self.get_object(card)
+        try:
+            bank = Bank.objects.get(name=request.data['bank'])
+        except Bank.DoesNotExist:
+            return JsonResponse("Bank does not exist", safe=False)
+        profile.bank = bank
+        profile.save()
+        serializer = ProfileSerializer(profile, many=False)
+        return Response(serializer.data)
 
 
-    def patch(self, request, id):
-        profile = self.get_object(id)
+    def patch(self, request, card):
+        profile = self.get_object(card)
 
-        if profile.id == request.data['id']:
+        if profile.card == request.data['card']:
             profile.balance += request.data['balance']
             profile.save()
             serializer = ProfileSerializer(profile, many=False)
             return Response(serializer.data)
         else:
             try:
-                transfer_to = self.get_object(request.data["id"])
+                transfer_to = self.get_object(request.data["card"])
                 if profile.bank.commission == 0:
                     transfer_to.balance += request.data['balance']
                 else:
@@ -87,11 +100,11 @@ class ProfileDetails(APIView):
                 serializer = ProfileSerializer(profile, many=False)
                 return Response(serializer.data)
             except Profile.DoesNotExist:
-                raise JsonResponse("Can not transfer to user that is not exist")
+                raise JsonResponse("Can not transfer to user that is not exist", safe=False)
     
 
-    def delete(self, request, id):
-        profile = self.get_object(id)
+    def delete(self, request, card):
+        profile = self.get_object(card)
         profile.delete()
         return Response("Profile was deleted")
 
@@ -102,7 +115,7 @@ class BankDetails(APIView):
         try:
             return Bank.objects.get(name=name)
         except Bank.DoesNotExist:
-            raise JsonResponse("Bank does not exist")
+            raise JsonResponse("Bank does not exist", safe=False)
 
     def get(self, request, name):
         bank = self.get_object(name)
