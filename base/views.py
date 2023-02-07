@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from rest_framework.decorators import api_view, permission_classes
 
 from rest_framework.permissions import  IsAuthenticated
-
+from django.db.models import Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import Profile, Bank
@@ -24,7 +24,13 @@ def getRoutes(request):
 @api_view(['GET', 'POST'])
 def getListOfProfiles(request):
     if request.method == 'GET':
-        profiles = Profile.objects.all()
+        query = request.GET.get('query')
+        if query == None:
+            query = ''
+        profiles = Profile.objects.filter(
+            Q(name__icontains=query) |
+            Q(surname__icontains=query)
+        )
         serializer = ProfileSerializer(profiles, many=True)
         return Response(serializer.data)
     if request.method == 'POST':
@@ -40,7 +46,10 @@ def getListOfProfiles(request):
 @api_view(['GET', 'POST'])
 def getListOfBanks(request):
     if request.method == 'GET':
-        banks = Bank.objects.all()
+        query = request.GET.get('query')
+        if query == None:
+            query = ''
+        banks = Bank.objects.filter(name__icontains=query)
         serializer = BankSerializer(banks, many=True)
         return Response(serializer.data)
     if request.method == 'POST':
